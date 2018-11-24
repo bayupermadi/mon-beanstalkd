@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/smtp"
 	"strings"
+	"time"
 
 	"github.com/go-yaml/yaml"
 	"github.com/iwanbk/gobeanstalk"
@@ -26,6 +27,7 @@ func statsTube(tubes string) {
 	thresholdJobs := viper.Get("app.max-buried-job").(int)
 	currentBuried, ok := tubeMap["current-jobs-buried"]
 	if ok {
+		fmt.Println(tubes+" has buried jobs: ", currentBuried.(int))
 		if currentBuried.(int) > thresholdJobs {
 			if viper.GetBool("app.smtp.ses.enabled") == true {
 				to := viper.Get("app.smtp.recipient").(string)
@@ -98,12 +100,16 @@ func main() {
 		panic(fmt.Errorf("fatal error config file: %s", err))
 	}
 
-	tubes := viper.Get("app.tube").(string)
-	tubeList := strings.Split(tubes, ", ")
-	start := 0
-	for i := 0; i < len(tubeList); i++ {
-		start = i
-		tubeName := string(tubeList[start])
-		statsTube(tubeName)
+	for {
+		tubes := viper.Get("app.tube").(string)
+		tubeList := strings.Split(tubes, ", ")
+		start := 0
+		for i := 0; i < len(tubeList); i++ {
+			start = i
+			tubeName := string(tubeList[start])
+			statsTube(tubeName)
+		}
+		<-time.After(time.Second * 30)
 	}
+
 }
