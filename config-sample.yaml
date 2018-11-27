@@ -4,7 +4,12 @@
       host: "<server>:<port>"
       tube: "<tube1>, <tube2>"
       max-buried-job: <threshold-jobs>
+      log:
+        enable: true
+        dir: /var/lib/beanstalkd/binlog/
+        max-size: 9
       smtp:
+        enabled: true
         user: "<sender>@<domain>"
         password: "<password>"
         port: "<port>"

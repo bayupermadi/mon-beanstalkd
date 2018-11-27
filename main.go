@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net/smtp"
+	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,18 +32,9 @@ func statsTube(tubes string) {
 	if ok {
 		fmt.Println(tubes+" has buried jobs: ", currentBuried.(int))
 		if currentBuried.(int) > thresholdJobs {
-			if viper.GetBool("app.smtp.ses.enabled") == true {
-				to := viper.Get("app.smtp.recipient").(string)
-				dest := strings.Split(to, ", ")
-				start := 0
-				for i := 0; i < len(dest); i++ {
-					start += i
-					sesAws(dest[start], tubes+" has buried jobs: "+string(currentBuried.(int)))
-				}
-			} else {
-				sendEmail(tubes + " has buried jobs: " + string(currentBuried.(int)))
-			}
-			fmt.Println(tubes+" has buried jobs: ", currentBuried.(int))
+			message := tubes + " has buried jobs: " + string(currentBuried.(int))
+			alert(message)
+			fmt.Println(message)
 		}
 	}
 
@@ -67,6 +61,7 @@ func sendEmail(body string) {
 		fmt.Printf("smtp error: %s", err)
 		return
 	}
+
 }
 
 func sesAws(to string, body string) {
@@ -91,6 +86,46 @@ func sesAws(to string, body string) {
 	fmt.Println(resp)
 }
 
+func alert(msg string) {
+	if viper.GetBool("app.smtp.enabled") == true {
+		if viper.GetBool("app.smtp.ses.enabled") == true {
+			to := viper.Get("app.smtp.recipient").(string)
+			dest := strings.Split(to, ", ")
+			start := 0
+			for i := 0; i < len(dest); i++ {
+				start += i
+				sesAws(dest[start], msg)
+			}
+		} else {
+			sendEmail(msg)
+		}
+	}
+}
+
+func logSize(path string, maxSize int64) (int64, error) {
+	var size int64
+	adjSize := func(_ string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return err
+	}
+	err := filepath.Walk(path, adjSize)
+
+	sizeInMB := size / 1024 / 1024
+
+	if sizeInMB > maxSize {
+		message := "Total log size beanstalkd: " + strconv.FormatInt(sizeInMB, 10) + "MB"
+		alert(message)
+		fmt.Println(message)
+	}
+
+	return sizeInMB, err
+}
+
 func main() {
 	// config
 	viper.SetConfigName("config")
@@ -99,6 +134,9 @@ func main() {
 	if err != nil {
 		panic(fmt.Errorf("fatal error config file: %s", err))
 	}
+
+	logPath := viper.Get("app.log.dir").(string)
+	logMaxSize := viper.Get("app.log.max-size").(int)
 
 	for {
 		tubes := viper.Get("app.tube").(string)
@@ -109,6 +147,9 @@ func main() {
 			tubeName := string(tubeList[start])
 			statsTube(tubeName)
 		}
+
+		logSize(logPath, int64(logMaxSize))
+
 		<-time.After(time.Second * 30)
 	}
 
