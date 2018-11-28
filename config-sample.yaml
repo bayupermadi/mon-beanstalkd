@@ -21,4 +21,9 @@
           aws-key-id: "<your aws key ID>"
           aws-secret-key: "your secret key"
           aws-region: "<your region>"
+      cloudwatch:
+        enabled: true
+        aws-key-id: "<your aws key ID>"
+        aws-secret-key: "your secret key"
+        aws-region: "<your region>"
 ---
