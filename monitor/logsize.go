@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/bayupermadi/mon-beanstalkd/aws"
+	"github.com/spf13/viper"
 )
 
 func LogSize(path string, maxSize int64) (int64, error) {
@@ -26,8 +27,9 @@ func LogSize(path string, maxSize int64) (int64, error) {
 	message := "Total log size beanstalkd: " + strconv.FormatInt(sizeInMB, 10) + "MB"
 
 	fmt.Println(message)
-	aws.CW("Logsize", "Megabytes", float64(sizeInMB), "LogDir", path)
-
+	if viper.GetBool("app.cloudwatch.enabled") == true {
+		aws.CW("Logsize", "Megabytes", float64(sizeInMB), "LogDir", path)
+	}
 	if sizeInMB > maxSize {
 		alert(message)
 	}

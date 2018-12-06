@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/bayupermadi/mon-beanstalkd/monitor"
 	"github.com/spf13/viper"
@@ -21,19 +20,15 @@ func main() {
 	logPath := viper.Get("app.log.dir").(string)
 	logMaxSize := viper.Get("app.log.max-size").(int)
 
-	for {
-		tubes := viper.Get("app.tube").(string)
-		tubeList := strings.Split(tubes, ", ")
-		start := 0
-		for i := 0; i < len(tubeList); i++ {
-			start = i
-			tubeName := string(tubeList[start])
-			monitor.StatsTube(tubeName)
-		}
-
-		monitor.LogSize(logPath, int64(logMaxSize))
-
-		<-time.After(time.Second * 30)
+	tubes := viper.Get("app.tube").(string)
+	tubeList := strings.Split(tubes, ", ")
+	start := 0
+	for i := 0; i < len(tubeList); i++ {
+		start = i
+		tubeName := string(tubeList[start])
+		monitor.StatsTube(tubeName)
 	}
+
+	monitor.LogSize(logPath, int64(logMaxSize))
 
 }

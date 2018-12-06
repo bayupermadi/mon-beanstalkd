@@ -25,7 +25,9 @@ func StatsTube(tubes string) {
 	currentBuried, ok := tubeMap["current-jobs-buried"]
 	if ok {
 		fmt.Println(tubes+" has buried jobs: ", currentBuried.(int))
-		aws.CW("Tubes Name", "Count", float64(currentBuried.(int)), "Tubes", tubes)
+		if viper.GetBool("app.cloudwatch.enabled") == true {
+			aws.CW("Tubes Name", "Count", float64(currentBuried.(int)), "Tubes", tubes)
+		}
 		if currentBuried.(int) > thresholdJobs {
 			message := tubes + " has buried jobs: " + string(currentBuried.(int))
 			alert(message)
